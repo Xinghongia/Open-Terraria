@@ -1,0 +1,54 @@
+name: Build dist
+
+# 手动触发 + 推送 main 时自动构建；产物 dist/ 以 artifact 形式产出
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+concurrency:
+  group: build-dist-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build (tsc + vite)
+        run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      - name: Report dist size
+        run: |
+          echo "=== dist 体积 ==="
+          du -sh dist
+          echo "=== 文件数 ==="
+          find dist -type f | wc -l
+          echo "=== 顶层 ==="
+          ls -la dist | head -30
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraria-dist
+          path: dist
+          retention-days: 30
+          compression-level: 6
+          if-no-files-found: error
