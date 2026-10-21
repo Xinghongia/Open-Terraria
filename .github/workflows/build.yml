@@ -30,8 +30,26 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Build (tsc + vite)
-        run: npm run build
+      - name: Normalize mtimes
+        run: |
+          # clone 侧没有仓库外的 l10n 源目录(tools/l10n，tools/l10n-custom)。
+          # checkout 时文件写入顺序不同会让"构建脚本比 public/l10n 产物新"，
+          # 从而误触发 vite 插件的自动重建。统一 mtime 消除这个竞态。
+          find . -path ./node_modules -prune -o -type f -print0 | xargs -0 touch -t 202001010000
+
+      - name: Build
+        run: |
+          set -e
+          # 上游 build 链第一段是 `node scripts/build-l10n.mjs`，它读仓库外的
+          # ../tools/l10n 分片源——clone 侧不存在（语言包成品 public/l10n/*.json
+          # 已随仓跟踪，无需再生成），故跳过该步，其余步骤原样照跑。
+          node scripts/stamp-build.mjs
+          node scripts/vanilla-atlas.mjs --index-only
+          node scripts/pack-assets.mjs
+          npx tsc
+          npx vite build
+          node scripts/prune-dist.mjs
+          node scripts/gen-sw-twa.mjs
         env:
           NODE_OPTIONS: --max-old-space-size=6144
 
