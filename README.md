@@ -72,13 +72,22 @@ npm test             # vitest 全量(2600+ 用例)
 npm run build        # 产物 dist/
 ```
 
+## AI Agent 工程迭代
+
+**→ [AGENTS.md](AGENTS.md)**
+
+本项目的全部开发均由 AI Agent 完成协作迭代。如果你想让 AI Agent（Claude Code / Codex / Cursor 等）
+参与本项目的开发，它可以通过 [AGENTS.md](AGENTS.md) 快速上手——其中包含：项目真值层级（反编译源码 → 数据表 → wiki）、
+测试三层结构与金标闸门纪律、诊断探针方法（F5 调试报告 / 性能 trace 拆解）、迭代方法论（先定谳再动刀 / 红蓝对抗），
+以及仓内 70 天逐日开发日志等全部判例档案的路由表。AI Agent 无需任何会话记忆，即可按本项目已验证的工作流进行工程迭代。
+
 ## Mod 开发
 
 **→ 完整指南:[docs/mod-dev-guide.md](docs/mod-dev-guide.md)**
 
 由于跨语言与平台的原因，无法支持tmod载入，建议通过AI精准转译到swmod（目前我们正在尝试全量转译灾厄mod）
 
-10 分钟从零做出第一个 mod(脚手架/L1 声明式内容 15 域/L2 脚本 API 总表/
+10 分钟从零做出第一个 mod(脚手架/L1 声明式内容 16 域/L2 脚本 API 总表/
 浏览器独有六接口/实战示例/发布):
 
 ```bash

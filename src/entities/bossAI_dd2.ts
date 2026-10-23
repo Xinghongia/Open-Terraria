@@ -1419,13 +1419,17 @@ export function divingFlyerAI(e: Enemy, game: GameHooks, player: Player | null) 
   if (e.ai0 === 0) {
     // ---- 悬空逼近（:66138-66186）;悬空态击退 = 族档（:66140） ----
     e.kbResistOverride = getKnockbackMultiplierScaledByDifficulty(p.kbMult, e.difficulty);
-    // 原版：vector = normalize(Δ)*num（逼近速:飞龙 3/小妖魔 4）;vector2 = normalize(vector-(0,num2))*num
+    // 原版：vector = normalize(Δ)*num（逼近速:飞龙 3/小妖魔 4）;vector2 = normalize(Δ-(0,num2))*num
+    // ★BJ706-A 定谳：num2 上抬偏移在【原差域 Δ】上施加（cs:66296-66300 vector2 =
+    //   vector − UnitY×num2 先于 Normalize）——曾错写成 normalize(Δ)*num − UnitY×num2
+    //   （单位向量域减 400）→ 任意目标距 >4px 时悬空向量恒近垂直（400≫水平分量）
+    //   = 小妖魔滑翔怪出传送门后直上不下（用户实报,574/575 与 558-560 飞龙同链）。
     const num = e.vanillaId === 574 || e.vanillaId === 575 ? 4 : 3;
     const dx = txc - e.cx, dy = tyc - e.cy;
     const dist = Math.hypot(dx, dy);
     const ux = dist > 0 ? dx / dist : 0, uy = dist > 0 ? dy / dist : 0;
     const vx1 = ux * num, vy1 = uy * num;
-    let hvx = vx1, hvy = vy1 - p.hoverUp;
+    let hvx = dx, hvy = dy - p.hoverUp;           // Δ − UnitY×num2（:66297 原差域）
     const hl = Math.hypot(hvx, hvy) || 1;
     hvx = (hvx / hl) * num;
     hvy = (hvy / hl) * num;
@@ -1803,7 +1807,7 @@ export class DD2BetsyFireball extends Entity {
       // 弹幕命中：attacker 缺省仅做死亡归因（contactOnly=false 不触发荆棘反伤）
       const dealt = game.damagePlayer(
         hostileProjectileDamage(this.damage, mainDifficulty(game.world)) * 2,   // :14912-14917
-        this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true });   // ★R-B-F10(第4=knockback 位,opts 第5)
+        this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true, projVid: 686 });   // ★R-B-F10(第4=knockback 位,opts 第5)
       if (dealt > 0) statusPlayer(game, 686);        // 实扣落地才走 statusPlayer 链
     }
   }
@@ -1997,7 +2001,7 @@ export class BetsyBreath extends Entity {
         dx * segLen, dy * segLen, 40, p)) {
       // Damage_EVP：命中不消耗弹体；OnFire 420-600t（:11515-11517 statusPlayer 687 表）
       // Damage_EVP：687 基础 35（:62449 段生成值）
-      game.damagePlayer(hostileProjectileDamage(this.dmg, mainDifficulty(game.world)) * 2, this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true });   // ★R-B-F10(第4=knockback 位,opts 第5)(2026-10-14):弹域旗(直调面进 modifyHitPlayerByProj 链;旧两链皆不进)
+      game.damagePlayer(hostileProjectileDamage(this.dmg, mainDifficulty(game.world)) * 2, this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true, projVid: 687 });   // ★R-B-F10(第4=knockback 位,opts 第5)(2026-10-14):弹域双旗点亮(Game.ts damagePlayer :44480 门=projDomain&&projVid;★BJ704-R3 P1:旧单旗=静默 no-op)
       statusPlayer(game, 687);
     }
     // 尘（:65874-65896）：渐显期焰头 3 尘 6 + 每 t 焰体 1 尘 31（沿焰体随机分布）
@@ -3411,7 +3415,7 @@ export class DD2GoblinBomb extends Entity {
     if (pl && !pl.dead
       && pl.x < bx + 80 && pl.x + pl.w > bx && pl.y < by + 80 && pl.y + pl.h > by) {
       // Damage_EVP：projDmg=GetAttackDamage 生成基础值，命中再过乘区×2
-      game.damagePlayer(hostileProjectileDamage(this.damage, mainDifficulty(game.world)) * 2, this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true });   // ★R-B-F10(第4=knockback 位,opts 第5)(2026-10-14):弹域旗(直调面进 modifyHitPlayerByProj 链;旧两链皆不进)
+      game.damagePlayer(hostileProjectileDamage(this.damage, mainDifficulty(game.world)) * 2, this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true, projVid: 681 });   // ★R-B-F10(第4=knockback 位,opts 第5)(2026-10-14):弹域双旗点亮(Game.ts damagePlayer :44480 门=projDomain&&projVid;★BJ704-R3 P1:旧单旗=静默 no-op)
     }
     for (const n of game.enemies() as Enemy[]) {
       // 永恒水晶 548 吃敌对爆伤（DD2 敌怪对水晶的伤害通道）
@@ -3498,7 +3502,7 @@ export class DD2OgreSmash extends Entity {
       && pl.x < this.x + this.w && pl.x + pl.w > this.x
       && pl.y < this.y + this.h && pl.y + pl.h > this.y) {
       // Damage_EVP：projDmg 生成基础值
-      game.damagePlayer(hostileProjectileDamage(this.dmg, mainDifficulty(game.world)) * 2, this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true });   // ★R-B-F10(第4=knockback 位,opts 第5)(2026-10-14):弹域旗(直调面进 modifyHitPlayerByProj 链;旧两链皆不进)
+      game.damagePlayer(hostileProjectileDamage(this.dmg, mainDifficulty(game.world)) * 2, this.cx, this.cy, undefined, undefined, undefined, undefined, { projDomain: true, projVid: 683 });   // ★R-B-F10(第4=knockback 位,opts 第5)(2026-10-14):弹域双旗点亮(Game.ts damagePlayer :44480 门=projDomain&&projVid;★BJ704-R3 P1:旧单旗=静默 no-op)
     }
     for (const n of game.enemies() as Enemy[]) {
       // ★BJ450:flag2 门（Projectile.cs:12626）——演出期（旗置位）照拒
